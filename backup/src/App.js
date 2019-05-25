@@ -18,22 +18,7 @@ class App extends Component {
     posts: [],
     message: null
   };
-  componentDidMount() {
-    const postsRef = firebase.database().ref("posts");
-    postsRef.on("value", snapshot => {
-      const posts = snapshot.val();
-      const newStatePosts = [];
-      for (let post in posts) {
-        newStatePosts.push({
-          key: post,
-          slug: posts[post].slug,
-          title: posts[post].title,
-          content: posts[post].content
-        });
-      }
-      this.setState({ posts: newStatePosts });
-    });
-  }
+
   onLogin = (email, password) => {
     firebase
       .auth()
@@ -52,9 +37,9 @@ class App extends Component {
   };
   addNewPost = post => {
     const postsRef = firebase.database().ref("posts");
-    post.slug = this.getNewSlugFromTitle(post.title);
     delete post.key;
     postsRef.push(post);
+    post.slug = this.getNewSlugFromTitle(post.title);
     this.setState({
       message: "saved"
     });
@@ -71,22 +56,22 @@ class App extends Component {
     );
   deletePost = post => {
     if (window.confirm("Delete this post?")) {
-      const postsRef = firebase.database().ref("posts/" + post.key);
-      postsRef.remove();
-      this.setState({ message: "deleted" });
+      const posts = this.state.posts.filter(p => p.id !== post.id);
+      this.setState({ posts, message: "deleted" });
       setTimeout(() => {
         this.setState({ message: null });
       }, 1600);
     }
   };
   updatePost = post => {
-    const postsRef = firebase.database().ref("posts/" + post.key);
-    postsRef.update({
-      slug: this.getNewSlugFromTitle(post.title),
-      title: post.title,
-      content: post.content
-    });
+    post.slug = this.getNewSlugFromTitle(post.title);
+    const index = this.state.posts.findIndex(p => p.id === post.id);
+    const posts = this.state.posts
+      .slice(0, index)
+      .concat(this.state.posts.slice(index + 1));
+    const newPosts = [...posts, post].sort((a, b) => a.id - b.id);
     this.setState({
+      posts: newPosts,
       message: "updated"
     });
     setTimeout(() => {
